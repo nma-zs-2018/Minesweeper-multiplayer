@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Synchronized Sliders</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.6/socket.io.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        socket = new WebSocket("ws://" + window.location.host + "/chat/");
+        socket.onmessage = function(e) {
+            alert(e.data);
+        }
+        socket.onopen = function() {
+            socket.send("hello world");
+        }
+    </script>
+</head>
+<body>
+    <h1>Synchronized Sliders!</h1>
+
+    <input id="slider1" class="sync" type="range" min="0" max="50" value="{{slider1}}" /> <br>
+    <input id="slider2" class="sync" type="range" min="0" max="50" value="{{slider2}}" />
+
+    <input id="txt1" class="sync" type="text" />
+
+</body>
+</html>
