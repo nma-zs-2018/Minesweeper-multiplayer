@@ -7,3 +7,6 @@ def students(request):
     students = Student.objects.all()
 
     return render(request, "students.html", {'students': students})
+
+def sliders(request):
+    return render(request, "sliders.html")

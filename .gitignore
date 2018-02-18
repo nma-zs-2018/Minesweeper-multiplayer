@@ -3,6 +3,6 @@ a.sublime-workspace
 venv
 .idea
 __pycache__
-.pyc
+*.pyc
 /media
 db.sqlite3

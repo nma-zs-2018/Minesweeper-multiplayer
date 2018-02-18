@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 
 import os
 
+import channels_redis
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -29,6 +31,8 @@ ALLOWED_HOSTS = ['159.89.102.219', 'localhost', '127.0.0.1']
 
 # Application definition
 
+ASGI_APPLICATION = "djangoc.routing.application"
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -37,7 +41,21 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'web.apps.WebConfig',
+    'channels',
 ]
+
+redis_host = os.environ.get('REDIS_HOST', 'localhost')
+
+# Channel settings
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(redis_host, 6379)],
+        },
+    },
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
