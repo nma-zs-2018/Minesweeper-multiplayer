@@ -27,21 +27,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['159.89.102.219', 'localhost', '127.0.0.1']
 
-redis_host = os.environ.get('REDIS_HOST', 'localhost')
-
-# Channel layer definitions
-# http://channels.readthedocs.io/en/latest/topics/channel_layers.html
-CHANNEL_LAYERS = {
-    "default": {
-        # This example app uses the Redis channel layer implementation channels_redis
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [(redis_host, 6379)],
-        },
-    },
-}
-
-
 # Application definition
 
 INSTALLED_APPS = [
