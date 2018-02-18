@@ -9,7 +9,7 @@
     {% for s in students %}
         <tr><td>{{ s.name }}</td> <td>iš {{ s.section }}</td><td>{% if s.image %}
 
-        <img src="{{ s.image.url }}" height="100">{% endif %}</td></tr>
+        <img src="{{ s.image.url }}" height="150">{% endif %}</td></tr>
 {% endfor %}
 </table>
 </body>
