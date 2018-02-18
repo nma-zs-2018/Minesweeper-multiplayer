@@ -1,0 +1,4 @@
+a.sublime-project
+a.sublime-workspace
+venv/*
+.idea/*
