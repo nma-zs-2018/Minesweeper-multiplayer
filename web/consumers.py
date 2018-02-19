@@ -1,8 +1,7 @@
 from channels.consumer import SyncConsumer
 import json
 
-from web.models import SliderValues
-
+"""
 conn = set()
 last = {}
 
@@ -38,16 +37,17 @@ class EchoConsumer(SyncConsumer):
                 "type": "websocket.send",
                 "text": "{\"who\": \"" + x['who'] + "\", \"data\": \"" + x['data'] + "\"}",
             }
-        print(last)
         for s in conn:
             s.send(a)
 
     def websocket_disconnect(self, event):
         conn.remove(self)
-        global last
-        val = SliderValues.objects.all()[0]
-        val.slider1 = last['slider1']
-        val.slider2 = last['slider2']
-        val.text = last['text']
-        val.save()
+        if len(conn) == 0:
+            global last
+            val = SliderValues.objects.all()[0]
+            val.slider1 = last['slider1']
+            val.slider2 = last['slider2']
+            val.text = last['text']
+            val.save()
 
+"""

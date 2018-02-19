@@ -16,13 +16,11 @@ Including another URLconf
 from django.contrib import admin
 from django.conf.urls import url
 
-from web.views import students, sliders
+from web.views import game
 
 from django.conf.urls.static import static
 from django.conf import settings
 
 urlpatterns = [
-                  url('admin/', admin.site.urls, name='admin'),
-                  url('stud/', students, name='students'),
-                  url('', sliders, name='sliders'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+                  # url('', game, name='game'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
