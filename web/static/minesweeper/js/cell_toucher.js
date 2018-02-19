@@ -109,23 +109,6 @@ function touchAdjacent(cell, grid) {
     }
 }
 
-function minesweeperCalculateWin(grid,mines) {
-    'use strict';
-    var closedCells = 0,
-        cell;
-
-    for (var y = 0; y < grid.length; y++) {
-        for (var x = 0; x < grid[0].length; x++) {
-            cell = grid[y][x];
-            if (!(cell.state === 'open' || cell.state === 'number')) {
-                closedCells += 1;
-            }
-        }
-    }
-
-    return (mines === closedCells);
-}
-
 if (this.document === undefined) {
     this.onmessage = function (p) {
         'use strict';
@@ -133,10 +116,7 @@ if (this.document === undefined) {
             grid = data.grid,
             resp = {};
         resp.type = data.type;
-        if (data.type === 'calc_win') {
-            resp.win = minesweeperCalculateWin(grid,data.mines);
-        }
-        else {
+        if (data.type !== 'calc_win') {
             var cell = grid[data.y][data.x];
             if (data.type === 'touch_adjacent') {
                 // This takes 1-2 seconds

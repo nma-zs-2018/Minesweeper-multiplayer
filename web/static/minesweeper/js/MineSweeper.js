@@ -48,9 +48,10 @@ jQuery(function ($) {
     var STATE_UNKNOWN = 'unknown',
         STATE_OPEN = 'open',
         STATE_NUMBER = 'number',
-        STATE_FLAGGED = 'flagged',
         STATE_EXPLODE = 'explode',
-        STATE_QUESTION = 'question';
+        STATE_EXPLODE_TRIGGERED = 'triggered';
+    var INT_STATE_EXPLODE = 99,
+        INT_EXPLODE_TRIGGERED = 98;
     var LEFT_MOUSE_BUTTON = 1,
         RIGHT_MOUSE_BUTTON = 3;
     var MAX_X = 30,
@@ -64,23 +65,18 @@ jQuery(function ($) {
         var msObj = this;
         this.options = {};
         this.grid = [];
-        this.running = true;
+        this.running = false;
         this.defaults = {
             selector: '#minesweeper',
             boardSize: levels.beginner.boardSize,
             numMines: levels.beginner.numMines,
-            pathToCellToucher: 'js/cell_toucher.js'
+            pathToCellToucher: '/static/minesweeper/js/cell_toucher.js'
         };
 
-        this.init = function (options) {
-            msObj.options = $.extend({}, msObj.defaults, options || {});
+        this.init = function (socket) {
+            msObj.socket = socket;
+            msObj.options = $.extend({}, msObj.defaults, {});
             var msUI = $(msObj.options.selector);
-            if (!msUI.length) {
-                throw 'MineSweeper element not found';
-            }
-            if (!window.JSON) {
-                throw 'This application requires a JSON parser.';
-            }
             // insert progress animation before the grid
             if ($('.ajax-loading').length < 1) {
                 msUI.before(
@@ -88,11 +84,67 @@ jQuery(function ($) {
                 );
             }
             msObj.initWorkers(msObj.options.pathToCellToucher);
-            msObj.clearBoard();
-            msObj.redrawBoard();
-            msObj.resetDisplays();
             msObj.initHandlers(msUI);
+
+
+            $(msObj.options.selector)
+                .html('')
+                .append(msObj.getTemplate('status'))
+                .append('<div class="board-wrap"></div>');
+            msObj.board = $('.board-wrap');
+            msObj.board.attr('unselectable', 'on')
+                .css('UserSelect', 'none')
+                .css('MozUserSelect', 'none');
             return msObj;
+        };
+        this.createBoard = function(board){
+             var width = msObj.options.boardSize[0],
+                height = msObj.options.boardSize[1],
+                x,
+                y,
+                z = 0;
+
+            msObj.grid = [];
+            for (y = 0; y < height; y++) {
+                msObj.grid[y] = [];
+                for (x = 0; x < width; x++) {
+                    msObj.grid[y][x] = {
+                        'state': STATE_UNKNOWN,
+                        'number': 0,
+                        'x': x,
+                        'y': y
+                    };
+                    if(board[x][y] === 0) {
+                        msObj.grid[y][x]['state'] = STATE_OPEN;
+                    }
+                    else if(board[x][y] <= 9) {
+                        msObj.grid[y][x]['state'] = STATE_NUMBER;
+                        msObj.grid[y][x]['number'] = board[x][y];
+                    }
+                    else if(board[x][y] === INT_STATE_EXPLODE) {
+                        msObj.grid[y][x]['state'] = STATE_EXPLODE;
+                    }
+                    else if(board[x][y] === INT_EXPLODE_TRIGGERED) {
+                        msObj.grid[y][x]['state'] = STATE_EXPLODE_TRIGGERED;
+                    }
+                }
+            }
+
+            // Insert the board cells in DOM]
+            msObj.board.html('');
+            for (y = 0; y < height; y++) {
+                var row = $('<ul class="row" data-index=' + y + '></ul>');
+                for (x = 0; x < width; x++) {
+                    var cell;
+                    row.append(
+                        '<li class="cell" data-coord="' + [x, y].join(',') + '" data-x=' + x +
+                        ' data-y=' + y + '>x</li>'
+                    );
+                    cell = row.find('.cell:last');
+                    msObj.drawCell(cell);
+                }
+                msObj.board.append(row);
+            }
         };
 
         /**
@@ -128,6 +180,56 @@ jQuery(function ($) {
                     'Minesweeper requires Web Worker support. ' +
                     'See https://browser-update.org/update.html'
                 );
+            }
+        };
+
+        this.load = function(options){
+            if(!msObj.running){
+                msObj.resetDisplays();
+                msObj.running = true;
+            }
+
+            msObj.stopTimer();
+
+            msObj.started = options.started;
+            msObj.ended = options.ended;
+            msObj.turn = options.turn;
+
+            $('#turn').text(msObj.turn);
+
+            var game = options.game;
+
+            msObj.options.boardSize = [game.n, game.m];
+            msObj.options.numMines = game.mines;
+
+            msObj.createBoard(game.board);
+            msObj.redrawBoard();
+
+            if(game.fail === 1){
+                $('#timer').text(parseInt(msObj.ended - msObj.started));
+                var width = msObj.options.boardSize[0],
+                    height = msObj.options.boardSize[1],
+                    x,
+                    y;
+
+                for (y = 0; y < height; y++) {
+                    for (x = 0; x < width; x++) {
+                        var obj = msObj.grid[y][x],
+                            cell = msObj.getJqueryObject(x,y);
+                        if (obj.state === STATE_EXPLODE || obj.state === STATE_EXPLODE_TRIGGERED) {
+                            cell.removeClass('ui-icon-help')
+                                .addClass('ui-icon ui-icon-close blown');
+                            if(obj.state !== STATE_EXPLODE_TRIGGERED){
+                                cell.removeClass('explode');
+                            }
+                        } else {
+                            cell.addClass('unblown');
+                        }
+                    }
+                }
+                msObj.running = false;
+            }else{
+                msObj.startTimer();
             }
         };
 
@@ -183,153 +285,25 @@ jQuery(function ($) {
             msUI.on('mouseup','.cell', function (ev) {
                 var targ = $(ev.target);
                 if (ev.which === LEFT_MOUSE_BUTTON) {
-                    if (ev.shiftKey || ev.ctrlKey) {
-                        msObj.MODIFIER_KEY_DOWN = true;
-                        setTimeout(function () {
-                            msObj.MODIFIER_KEY_DOWN = false;
-                        }, 50);
-                        msObj.handleRightClick(targ);
-                    } else {
-                        msObj.handleLeftClick(targ);
-                    }
-                } else if (ev.which === RIGHT_MOUSE_BUTTON) {
-                    msObj.handleRightClick(targ);
+                    msObj.handleLeftClick(targ);
                 }
             });
 
             $('.new-game').on('click', function (ev) {
-                ev.preventDefault();
-                msObj.stopTimer();
-                msObj.timer = '';
-                msObj.running = true;
-                msObj.setBoardOptions();
-                msObj.clearBoard();
-                msObj.redrawBoard();
-                msObj.resetDisplays();
-            });
 
-            $('#level').on('change', function () {
-                var input = $('.game_settings input');
-                if ($('#level option:selected').val() === 'custom') {
-                    input.prop('disabled', false);
-                } else {
-                    input.prop('disabled', true);
-                }
-                $('.new-game').trigger('click');
             });
-
-            $('#best_times').on('click', function () {
-                var beginnerTime = localStorage.getItem('best_time_beginner') || 'None';
-                var intermediateTime = localStorage.getItem('best_time_intermediate') || 'None';
-                var expertTime = localStorage.getItem('best_time_expert') || 'None';
-                var beginnerName = localStorage.getItem('beginner_record_holder') || 'None';
-                var intermediateName = localStorage.getItem('intermediate_record_holder') || 'None';
-                var expertName = localStorage.getItem('expert_record_holder') || 'None';
-                alert('Best times:\nBeginner:\t' + beginnerName + '\t' + beginnerTime + '\n' +
-                    'Intermediate:\t' + intermediateName + '\t' + intermediateTime + '\n' +
-                    'Expert:\t' + expertName + '\t' + expertTime);
-            });
-
         };
 
-        /**
-         * @return void
-         * @param cell jQuery representation of cell
-         */
-        this.handleRightClick = function (cell) {
-            if (!(cell instanceof jQuery)) {
-                throw 'Parameter must be jQuery instance';
-            }
-            if (!msObj.running) {
-                return;
-            }
-            var obj = msObj.getCellObj(cell);
-
-            if (obj.state === STATE_NUMBER) {
-                // auto clear neighbor cells
-                if (msObj.LEFT_MOUSE_DOWN || msObj.MODIFIER_KEY_DOWN) {
-                    msObj.callWorker('get_adjacent', obj);
-                }
-                return;
-            }
-
-            if (obj.state === STATE_NUMBER) {
-                return;
-            }
-            if (obj.state === STATE_QUESTION) {
-                obj.state = STATE_UNKNOWN;
-            } else {
-                var flagDisplay = $('#mine_flag_display'),
-                    curr = parseInt(flagDisplay.val(), 10);
-                if (obj.state === STATE_UNKNOWN) {
-                    obj.state = STATE_FLAGGED;
-                    flagDisplay.val(curr - 1);
-                } else if (obj.state === STATE_FLAGGED) {
-                    obj.state = STATE_QUESTION;
-                    flagDisplay.val(curr + 1);
-                }
-            }
-            msObj.drawCell(cell);
-        };
-
-        /**
-         * @return void
-         * @param cell jQuery representation of cell
-         */
         this.handleLeftClick = function (cell) {
-            // cell = jQuery object
-            // obj = memory state
-            if (!(cell instanceof jQuery)) {
-                throw 'Parameter must be jQuery instance';
-            }
-            if (!msObj.running) {
-                return;
-            }
-            if (!msObj.timer) {
-                msObj.startTimer();
-            }
-
             var obj = msObj.getCellObj(cell);
-            if (obj.state === STATE_OPEN || obj.state === STATE_FLAGGED) {
-                // ignore clicks on these
-                return;
-            }
-            if (obj.state === STATE_NUMBER) {
-                // auto clear neighbor cells
-                if (msObj.RIGHT_MOUSE_DOWN) {
-                    msObj.callWorker('get_adjacent',obj);
-                }
-                return;
-            }
 
-            if (obj.mine) {
-                // game over
-                msObj.gameOver(cell);
-                return;
-            }
-
-            if (msObj.worker) {
-                // Asynchronously
-                msObj.callWorker('touch_adjacent',obj);
-            } else {
-                // Synchronously
-                if (!window.touchAdjacent) {
-                    throw ('Could not load ' + msObj.options.pathToCellToucher);
-                }
-                msObj.grid = window.touchAdjacent(obj, msObj.grid);
-                // redraw board from memory representation
-                msObj.redrawBoard();
-            }
+            msObj.socket.send("{\"x\": "+obj.x+", \"y\": "+obj.y+"}");
         };
 
         this.handleWorkerMessage = function (data) {
             if (data.type === 'touch_adjacent' || data.type === 'get_adjacent') {
                 msObj.grid = data.grid;
                 msObj.redrawBoard();
-            } else if (data.type === 'calc_win') {
-                if (data.win) {
-                    msObj.winGame();
-                }
             } else if (data.type === 'explode') {
                 var cell = msObj.getJqueryObject(data.cell.x, data.cell.y);
                 msObj.gameOver(cell);
@@ -363,99 +337,16 @@ jQuery(function ($) {
             return msObj.board.find('.cell[data-coord="' + [x, y].join(',') + '"]');
         };
 
-        this.getRandomMineArray = function () {
-            var width = msObj.options.boardSize[0],
-                height = msObj.options.boardSize[1],
-            // Total Mines is a percentage of the total number of cells
-                totalMines = msObj.options.numMines,
-                array = [],
-                x,
-                max,
-                infiniteLoop = 0;
-
-            // Put all mines in the beginning
-            for (x = 0, max = width * height; x < max; x++) {
-                if (x < totalMines) {
-                    array[x] = 1;
-                } else {
-                    array[x] = 0;
-                }
-            }
-
-            // shuffle array so it's like pulling out of a 'hat'
-            // credit: http://sedition.com/perl/javascript-fy.html
-            function fisherYates (myArray) {
-                var i = myArray.length, j, tempi, tempj;
-                if (i === 0) {
-                    return;
-                }
-                while (--i) {
-                    j = Math.floor(Math.random() * (i + 1));
-                    tempi = myArray[i];
-                    tempj = myArray[j];
-                    myArray[i] = tempj;
-                    myArray[j] = tempi;
-                }
-            }
-
-            do {
-                fisherYates(array);
-                infiniteLoop += 1;
-                if (infiniteLoop > 20) {
-                    break;
-                }
-            } while(array[0] === 1);
-
-            return array;
-        };
-
-        // set the board size and mine density
-        this.setBoardOptions = function () {
-            var level = $('#level').val();
-
-            if (level === 'custom') {
-                var dimX = parseInt($('#dim_x').val(), 10);
-                var dimY = parseInt($('#dim_y').val(), 10);
-                var numMines = parseInt($('#numMines').val(), 10);
-
-                // rationalise options JIC
-                if (isNaN(dimX) || (dimX === 0)) {
-                    dimX = 1;
-                } else if (dimX > MAX_X) {
-                    dimX = MAX_X;
-                }
-                if (isNaN(dimY) || (dimY === 0)) {
-                    dimY = 1;
-                } else if (dimY > MAX_Y) {
-                    dimY = MAX_Y;
-                }
-                if (isNaN(numMines) || (numMines === 0)) {
-                    numMines = 1;
-                } else if (numMines >= (dimX * dimY)) {
-                    numMines = (dimX * dimY) - 1;
-                }
-                // refresh display with updated values
-                $('#dim_x').val(dimX);
-                $('#dim_y').val(dimY);
-                $('#num_mines').val(numMines);
-
-                msObj.options.boardSize = [dimX, dimY];
-                msObj.options.numMines = numMines;
-
-            } else {
-                msObj.options.boardSize = levels[level].boardSize;
-                msObj.options.numMines = levels[level].numMines;
-            }
-
-        };
-
         this.startTimer = function () {
             var timerElement = $('#timer');
-            timerElement.val(0);
-            console.log('starting timer');
+            function update() {
+                var d = new Date();
+                var t_millis = d.getTime();
+                timerElement.text(parseInt((t_millis-msObj.started*1000)/1000));
+            }
+            update();
             msObj.timer = window.setInterval(function () {
-                var curr = parseInt(timerElement.val(), 10);
-                timerElement.val(curr + 1);
+                update();
             }, 1000);
         };
 
@@ -466,73 +357,9 @@ jQuery(function ($) {
         };
 
         this.resetDisplays = function () {
-
-            var level = $('#level option:selected').val();
-            var numMines;
-
-            if (level === 'custom') {
-                numMines = $('#numMines').val();
-            } else {
-                numMines = levels[level].numMines;
-            }
-
-            $('#mine_flag_display').val(numMines);
-            $('#timer').val(0);
-        };
-
-        // clear & initialize the internal cell memory grid
-        this.clearBoard = function () {
-            var width = msObj.options.boardSize[0],
-                height = msObj.options.boardSize[1],
-                x,
-                y,
-                z = 0,
-                mineHat = msObj.getRandomMineArray();
-
-            msObj.grid = [];
-            for (y = 0; y < height; y++) {
-                msObj.grid[y] = [];
-                for (x = 0; x < width; x++) {
-                    msObj.grid[y][x] = {
-                        'state': STATE_UNKNOWN,
-                        'number': 0,
-                        'mine': mineHat[z++],
-                        'x': x,
-                        'y': y
-                    };
-                }
-            }
-
-            // Insert the board cells in DOM
-            if (!msObj.board) {
-                $(msObj.options.selector)
-                    .html('')
-                    .append(msObj.getTemplate('settings'))
-                    .append(msObj.getTemplate('actions'))
-                    .append(msObj.getTemplate('status'))
-                    .append('<div class="board-wrap"></div>');
-                msObj.board = $('.board-wrap');
-                msObj.board.attr('unselectable', 'on')
-                    .css('UserSelect', 'none')
-                    .css('MozUserSelect', 'none');
-            } else {
-                msObj.board.html('');
-            }
-            for (y = 0; y < height; y++) {
-                var row = $('<ul class="row" data-index=' + y + '></ul>');
-                for (x = 0; x < width; x++) {
-                    var cell;
-                    row.append(
-                        '<li class="cell" data-coord="' + [x, y].join(',') + '" data-x=' + x +
-                        ' data-y=' + y + '>x</li>'
-                    );
-                    cell = row.find('.cell:last');
-                    msObj.drawCell(cell);
-                }
-                msObj.board.append(row);
-            }
-
-
+            console.log(msObj.options.numMines);
+            $('#mine_flag_display').text(msObj.options.numMines);
+            $('#timer').text(0);
         };
 
         this.redrawBoard = function () {
@@ -553,7 +380,6 @@ jQuery(function ($) {
                 }
             }
         };
-
 
         this.drawCell = function (x, y) {
             var cell = null,
@@ -577,17 +403,13 @@ jQuery(function ($) {
             cell.html('');
             cell.attr('data-number', '');
             switch (gridobj.state) {
-                case STATE_FLAGGED:
-                    cell.addClass('ui-icon ui-icon-flag');
-                    cell.addClass(gridobj.state);
-                    break;
-                case STATE_QUESTION:
-                    cell.addClass('ui-icon ui-icon-help');
-                    /* falls through */
                 case STATE_UNKNOWN:
                 case STATE_OPEN:
                 case STATE_EXPLODE:
                     cell.addClass(gridobj.state);
+                    break;
+                case STATE_EXPLODE_TRIGGERED:
+                    cell.addClass(STATE_EXPLODE);
                     break;
                 case STATE_NUMBER:
                     cell.addClass('number');
@@ -597,87 +419,17 @@ jQuery(function ($) {
                 default:
                     throw 'Invalid gridobj state: ' + gridobj.state;
             }
-
-        };
-
-        /**
-         * @param cellParam
-         * @return void
-         */
-        this.gameOver = function (cellParam) {
-
-            msObj.stopTimer();
-
-            var width = msObj.options.boardSize[0],
-                height = msObj.options.boardSize[1],
-                x,
-                y;
-
-            if (cellParam) {
-                cellParam.removeClass();
-                cellParam.addClass('cell ' + STATE_EXPLODE);
-            }
-            for (y = 0; y < height; y++) {
-                for (x = 0; x < width; x++) {
-                    var obj = msObj.grid[y][x],
-                        cell = msObj.getJqueryObject(x,y);
-                    if (obj.mine) {
-                        cell.removeClass('ui-icon-help')
-                            .addClass('ui-icon ui-icon-close blown');
-                    } else {
-                        cell.addClass('unblown');
-                    }
-                }
-            }
-            msObj.running = false;
-        };
-
-        this.winGame = function () {
-            msObj.stopTimer();
-            msObj.running = false;
-            var time = $('#timer').val();
-            alert('You win!\nYour time: ' + time);
-            msObj.checkBestTime(time);
-        };
-
-        this.checkBestTime = function (time) {
-            var level = $('#level').val();
-            if (level !== 'custom') {
-                var bestTime = localStorage.getItem('best_time_' + level);
-
-                if (!bestTime || parseInt(time, 10) < parseInt(bestTime, 10)) {
-                    var displayName = localStorage.getItem(level + '_record_holder');
-                    if (!displayName) {
-                        displayName = 'Your name';
-                    }
-                    var name = window.prompt(
-                        'Congrats! You beat the best ' + level + ' time!', displayName
-                    );
-
-                    localStorage.setItem('best_time_' + level, time);
-                    localStorage.setItem(level + '_record_holder', name);
-                }
-            }
         };
 
         this.getTemplate = function (template) {
             var templates = {
-                'settings':
-                    '<div class="game_settings"><select id="level"><option value="beginner">Beginner</option>' +
-                    '<option value="intermediate">Intermediate</option><option value="expert">Expert</option>' +
-                    '<option value="custom">Custom</option></select>' +
-                    '<input type="text" id="dim_x" placeholder="x" size="5" disabled value="20" />' +
-                    '<input type="text" id="dim_y" placeholder="y" size="5" disabled value="20" />' +
-                    '<input type="text" id="numMines" placeholder="mines" size="5" disabled />' +
-                    '</div>',
-                'actions':
-                    '<div class="game_actions"><button class="new-game">New Game</button>' +
-                    '<button id="bestTimes">Best times</button></div>',
                 'status':
-                    '<div class="game_status"><label>Time:</label>' +
-                    '<input type="text" id="timer" size="6" value="0" readonly />' +
-                    '<label>Mines:</label>' +
-                    '<input type="text" id="mine_flag_display" size="6" value="10" disabled />'
+                    '<div class="game_status"><label>Time: </label>' +
+                    '<span id="timer" style="display: inline-block;*display: inline;\n*zoom:1;min-width: 30px;"></span>'+
+                    '<div class="turn"><label>Turn: </label>' +
+                    '<span id="turn" style="display: inline-block;*display: inline;\n*zoom:1;min-width: 100px;"></span>'+
+                    '<label>Mines: </label>' +
+                    '<span id="mine_flag_display"></span>'
             };
 
             return templates[template];

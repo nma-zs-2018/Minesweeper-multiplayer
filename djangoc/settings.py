@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'channels',
 ]
 
+MIDDLEWARE = 'django.contrib.sessions.middleware.SessionMiddleware'
+
 redis_host = os.environ.get('REDIS_HOST', 'localhost')
 
 # Channel settings

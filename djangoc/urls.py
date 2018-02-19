@@ -14,13 +14,18 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.conf.urls import url
+from django.urls import path
 
-from web.views import game
+from web.views import game, index, game_create, lobby
 
 from django.conf.urls.static import static
 from django.conf import settings
 
 urlpatterns = [
-                  # url('', game, name='game'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+                  path('game/<str:id>', game, name='game'),
+                  path('game/', game_create, name='game_create'),
+                  path('lobby/<str:id>', lobby, name='lobby'),
+                  path('', index, name='index'),
+]\
+              + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)\
+              + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

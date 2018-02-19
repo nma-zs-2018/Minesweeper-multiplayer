@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MineSweeper</title>
+</head>
+<body>
+    <form action="game/" method="post">
+        <label for="name">Room name: </label><input id="name" type="text" name="name" value="{{ game_name }}"><br>
+        <label for="height">Height: </label><input id="height" type="number" name="height" value="10"><br>
+        <label for="width">Width: </label><input id="width" type="number" name="width" value="10"><br>
+        <label for="mines">Mines: </label><input id="mines" type="number" name="mines" value="20"><br>
+        {% csrf_token %}
+        <input type="submit" value="OK">
+    </form>
+    <script src="static/lib/jquery.min.js"></script>
+</body>
+</html>

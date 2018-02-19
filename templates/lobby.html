@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MineSweeper</title>
+</head>
+<body>
+Room: <a id="link" href=""></a>
+<button type="button" id="copy_button">Copy</button>
+<br>
+Your name: <input id="name" type="text" value="{{ your_name }}">
+<ul id="players"></ul>
+<button type="button" id="start">Start a game!</button>
+<script src="/static/lib/jquery.min.js"></script>
+<script>
+    function getLink() {
+        return window.location.href;
+    }
+
+    function updateLink() {
+        link = getLink();
+        var $t = $('#link');
+        $t.text(link);
+        $t.attr("href", link);
+    }
+
+    function copyToClipboard(text) {
+        var $temp = $("<input>");
+        $("body").append($temp);
+        $temp.val(text).select();
+        document.execCommand("copy");
+        $temp.remove();
+    }
+
+    $('#copy_button').on("click", function (ev) {
+        copyToClipboard(getLink());
+        return false;
+    });
+    $('#start').on("click", function (ev) {
+        socket.send('START');
+    });
+    var socket = new WebSocket("ws://" + window.location.host + "/lobby/websocket/{{ game_name }}/");
+
+    socket.onopen = function (ev) {
+        socket.send('{{ your_name }}');
+    };
+
+    $(':input#name').on('propertychange input', function (e) {
+        var valueChanged = false;
+
+        if (e.type === 'propertychange') {
+            valueChanged = e.originalEvent.propertyName === 'value';
+        } else {
+            valueChanged = true;
+        }
+        if (valueChanged) {
+            socket.send($(this).val());
+        }
+    });
+
+    socket.onmessage = function (e) {
+        if (e.data === 'REDIRECT') {
+            window.location.replace('/game/{{ game_name }}');
+        }
+        players = JSON.parse(e.data);
+        var list = "";
+        for (i = 0; i < players.length; i++) {
+            list += "<li>" + players[i] + "</li>";
+        }
+        $("#players").html(list);
+    };
+    updateLink();
+</script>
+</body>
+</html>
