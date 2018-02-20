@@ -12,7 +12,7 @@ class Minesweeper:
         self.n = n
         self.m = m
         self.minesCount = mines
-        self.fail = False
+        self.fail = None
         self.won = False
         self.unknown = n * m
         if mines * 1.2 >= n * m or mines < 3:
@@ -39,14 +39,14 @@ class Minesweeper:
         if self.won:
             this = Minesweeper(n, m, mines)
 
-    def open(self, i, j):
-        if self.fail or self.won or self.board[i][j] != 100:
+    def open(self, i, j, name = ''):
+        if self.fail is not None or self.won or self.board[i][j] != 100:
             return
 
         self.unknown -= 1
 
         if self.mines[i][j]:
-            self.fail = True
+            self.fail = name
 
             for ii in range(0, self.n):
                 for jj in range(0, self.m):
@@ -88,9 +88,10 @@ class Minesweeper:
                 self.won = True
 
     def dictionary(self):
-        return {'n': self.n, 'm': self.m, 'fail': 1 if self.fail else 0, 'won': 1 if self.won else 0,
+        return {'n': self.n, 'm': self.m,
+                'fail': str(self.fail), 'won': 1 if self.won else 0,
                 'mines': self.minesCount,
-                'board': self.board}
+                'board': self.board, 'unknown': self.unknown}
 
 
 class MinesweeperRoom:
@@ -108,7 +109,8 @@ class MinesweeperRoom:
     def open(self, i, j):
         if self.game.fail or self.game.won:
             return
-        self.game.open(i, j)
+        name = self.names[self.players_list[self.turn]]
+        self.game.open(i, j, name)
         if self.game.fail or self.game.won:
             self.ended = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
 

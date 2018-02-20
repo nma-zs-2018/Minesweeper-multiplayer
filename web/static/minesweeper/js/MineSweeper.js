@@ -1,49 +1,13 @@
-/* globals alert */
 /**
  MineSweeper.js
  Author: Michael C. Butler
  Url: https://github.com/michaelbutler/minesweeper
-
- Dependencies: jQuery, jQuery UI CSS (for icons)
-
- This file is part of Minesweeper.js.
-
- Minesweeper.js is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Minesweeper.js is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Minesweeper.js.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 var MineSweeper;
 
-
 jQuery(function ($) {
     'use strict';
-
-    // standard level configurations
-    var levels = {
-        'beginner': {
-            'boardSize': [9, 9],
-            'numMines': 10
-        },
-        'intermediate': {
-            'boardSize': [16, 16],
-            'numMines': 40
-        },
-        'expert': {
-            'boardSize': [30, 16],
-            'numMines': 99
-        }
-    };
-
     // "Static Constants"
     var STATE_UNKNOWN = 'unknown',
         STATE_OPEN = 'open',
@@ -54,8 +18,6 @@ jQuery(function ($) {
         INT_EXPLODE_TRIGGERED = 98;
     var LEFT_MOUSE_BUTTON = 1,
         RIGHT_MOUSE_BUTTON = 3;
-    var MAX_X = 30,
-        MAX_Y = 30;
 
     MineSweeper = function () {
         // prevent namespace pollution
@@ -65,32 +27,19 @@ jQuery(function ($) {
         var msObj = this;
         this.options = {};
         this.grid = [];
-        this.running = false;
-        this.defaults = {
-            selector: '#minesweeper',
-            boardSize: levels.beginner.boardSize,
-            numMines: levels.beginner.numMines,
-            pathToCellToucher: '/static/minesweeper/js/cell_toucher.js'
-        };
+        this.pathToCellToucher = '/static/minesweeper/js/cell_toucher.js';
 
         this.init = function (socket) {
             msObj.socket = socket;
-            msObj.options = $.extend({}, msObj.defaults, {});
-            var msUI = $(msObj.options.selector);
+            var msUI = $('#minesweeper');
             // insert progress animation before the grid
             if ($('.ajax-loading').length < 1) {
                 msUI.before(
                 '<div class="invisible ajax-loading"></div>'
                 );
             }
-            msObj.initWorkers(msObj.options.pathToCellToucher);
+            msObj.initWorkers(msObj.pathToCellToucher);
             msObj.initHandlers(msUI);
-
-
-            $(msObj.options.selector)
-                .html('')
-                .append(msObj.getTemplate('status'))
-                .append('<div class="board-wrap"></div>');
             msObj.board = $('.board-wrap');
             msObj.board.attr('unselectable', 'on')
                 .css('UserSelect', 'none')
@@ -153,6 +102,7 @@ jQuery(function ($) {
          * @param payload number or object with {x: ?, y: ?}
          */
         this.callWorker = function(taskType, payload) {
+            console.log("ASD");
             $('.ajax-loading').removeClass('invisible');
             var job = {
                 type: taskType, // message type
@@ -184,34 +134,23 @@ jQuery(function ($) {
         };
 
         this.load = function(options){
-            if(!msObj.running){
-                msObj.resetDisplays();
-                msObj.running = true;
-            }
-
-            msObj.stopTimer();
-
             msObj.started = options.started;
             msObj.ended = options.ended;
             msObj.turn = options.turn;
-
-            $('#turn').text(msObj.turn);
 
             var game = options.game;
 
             msObj.options.boardSize = [game.n, game.m];
             msObj.options.numMines = game.mines;
 
+            if(!msObj.timer){
+                msObj.startTimer();
+            }
+
+            msObj.resetDisplays(game);
             msObj.createBoard(game.board);
             msObj.redrawBoard();
-            if(game.won === 1)
-                $('#emoji').text(':)');
-            else if(game.fail === 1)
-                $('#emoji').text(':(');
-            else
-                $('#emoji').text(':|');
-            if(game.fail === 1 || game.won === 1){
-                $('#timer').text(Math.round(msObj.ended - msObj.started));
+            if(game.fail !== 'None' || game.won === 1){
                 var width = msObj.options.boardSize[0],
                     height = msObj.options.boardSize[1],
                     x,
@@ -232,18 +171,10 @@ jQuery(function ($) {
                         }
                     }
                 }
-                msObj.running = false;
-            }else{
-                msObj.startTimer();
             }
         };
 
         this.initHandlers = function (msUI) {
-
-            msUI.on('contextmenu', '.cell', function (ev) {
-                ev.preventDefault();
-            });
-
             msUI.on('mousedown', function (ev) {
                 if (ev.which === RIGHT_MOUSE_BUTTON) {
                     clearTimeout(msObj.RIGHT_BUTTON_TIMEOUT);
@@ -293,10 +224,6 @@ jQuery(function ($) {
                     msObj.handleLeftClick(targ);
                 }
             });
-
-            $('.new-game').on('click', function (ev) {
-
-            });
         };
 
         this.handleLeftClick = function (cell) {
@@ -345,9 +272,14 @@ jQuery(function ($) {
         this.startTimer = function () {
             var timerElement = $('#timer');
             function update() {
-                var d = new Date();
-                var t_millis = d.getTime();
-                timerElement.text(Math.round((t_millis-msObj.started*1000)/1000));
+                if(msObj.ended !== 0) {
+                    timerElement.text(Math.round(msObj.ended - msObj.started));
+                    clearInterval(msObj.timer);
+                } else{
+                    var d = new Date();
+                    var t_millis = d.getTime();
+                    timerElement.text(Math.round((t_millis - msObj.started * 1000) / 1000));
+                }
             }
             update();
             msObj.timer = window.setInterval(function () {
@@ -355,15 +287,23 @@ jQuery(function ($) {
             }, 1000);
         };
 
-        this.stopTimer = function () {
-            if (msObj.timer) {
-                window.clearInterval(msObj.timer);
-            }
-        };
-
-        this.resetDisplays = function () {
+        this.resetDisplays = function (game) {
             $('#mine_flag_display').text(msObj.options.numMines);
-            $('#timer').text(0);
+            $('#cells_left').text(game.unknown);
+            var ended = true;
+            if(game.won === 1)
+                $('#emoji').text(':)');
+            else if(game.fail !== 'None')
+                $('#emoji').text(':( ' + game.fail);
+            else{
+                ended = false;
+                $('#emoji').text(':|');
+                $('#turn').text(msObj.turn);
+            }
+            if(ended){
+                $('#turn').hide();
+                $('#turn_label').hide();
+            }
         };
 
         this.redrawBoard = function () {
@@ -411,21 +351,5 @@ jQuery(function ($) {
                     throw 'Invalid gridobj state: ' + gridobj.state;
             }
         };
-
-        this.getTemplate = function (template) {
-            var templates = {
-                'status':
-                    '<h2 id="emoji"></h2>'+
-                    '<div class="game_status"><label>Time: </label>' +
-                    '<span id="timer" style="display: inline-block;*display: inline;\n*zoom:1;min-width: 30px;"></span>'+
-                    '<div class="turn"><label>Turn: </label>' +
-                    '<span id="turn" style="display: inline-block;*display: inline;\n*zoom:1;min-width: 100px;"></span>'+
-                    '<label>Mines: </label>' +
-                    '<span id="mine_flag_display"></span>'
-            };
-
-            return templates[template];
-        };
-
     };
 });

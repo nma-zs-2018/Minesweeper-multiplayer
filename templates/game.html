@@ -14,9 +14,19 @@
 <h1 class="logo">MineSweeper
     <span class="invisible ajax-loading"><img src="/static/minesweeper/load.gif" alt="Processing..."/></span>
 </h1>
-{% if username %}Your name: {{ username }} {% else %} Spactator {% endif %}
-<div id="minesweeper"></div>
-
+<div id="minesweeper">
+<h2 id="emoji" style="margin: 0;"></h2>
+<label>Time: </label>
+<span id="timer" style="display: inline-block;*display: inline;\n*zoom:1;min-width: 30px;"></span>
+<label id="turn_label">Turn: </label>
+<span id="turn" style="display: inline-block;*display: inline;\n*zoom:1;min-width: 100px;"></span>
+<label>Mines: </label>
+<span id="mine_flag_display" style="display: inline-block;*display: inline;\n*zoom:1;min-width: 30px;"></span>
+<label>Cells left: </label>
+<span id="cells_left" style="display: inline-block;*display: inline;\n*zoom:1;min-width: 30px;"></span>
+<div class="board-wrap"></div>
+</div>
+{% if username %}Your name: {{ username }} {% else %} Spactator {% endif %}<br>
 <a href="/">New</a><br>
 <a href="/clone/{{ game_name }}">Clone</a>
 

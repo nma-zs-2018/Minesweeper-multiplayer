@@ -66,8 +66,8 @@ class GameConsumer(SyncConsumer):
         if self.game.players_list[self.game.turn] == self.user:
             point = json.loads(event['text'])
             self.game.open(point['x'], point['y'])
-            self.game.broadcast_board()
             self.game.turn = (self.game.turn + 1) % len(self.game.players_list)
+            self.game.broadcast_board()
 
     def websocket_disconnect(self, event):
         if self.game is None:

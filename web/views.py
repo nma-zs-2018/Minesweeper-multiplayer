@@ -1,6 +1,5 @@
 import random
 import string
-import asyncio
 from datetime import datetime
 
 from django.http import HttpResponseBadRequest
@@ -77,6 +76,10 @@ def game_create(request):
 def lobby(request, game_name):
     if game_name not in MinesweeperRoom.all:
         return HttpResponseBadRequest()
+
+    game = MinesweeperRoom.all[game_name].game
+    if game.won or game.fail is not None:
+        return redirect('/game/' + game_name)
 
     return render(request, "lobby.html", {'game_name': game_name,
                                           'your_name': 'player ' + random_string_up_letters(2)})
