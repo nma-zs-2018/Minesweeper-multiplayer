@@ -17,6 +17,9 @@
 {% if username %}Your name: {{ username }} {% else %} Spactator {% endif %}
 <div id="minesweeper"></div>
 
+<a href="/">New</a><br>
+<a href="/clone/{{ game_name }}">Clone</a>
+
 <script src="/static/minesweeper/js/MineSweeper.js" type="text/javascript"></script>
 <script src="/static/lib/socket.io.js"></script>
 <!--script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.6/socket.io.js"></script-->
@@ -27,7 +30,6 @@
         minesweeper.init(socket);
 
         socket.onmessage = function(e) {
-            console.log(e);
             ee = JSON.parse(e.data);
             minesweeper.load(ee);
         };

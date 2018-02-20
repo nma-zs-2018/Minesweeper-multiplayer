@@ -204,9 +204,14 @@ jQuery(function ($) {
 
             msObj.createBoard(game.board);
             msObj.redrawBoard();
-
-            if(game.fail === 1){
-                $('#timer').text(parseInt(msObj.ended - msObj.started));
+            if(game.won === 1)
+                $('#emoji').text(':)');
+            else if(game.fail === 1)
+                $('#emoji').text(':(');
+            else
+                $('#emoji').text(':|');
+            if(game.fail === 1 || game.won === 1){
+                $('#timer').text(Math.round(msObj.ended - msObj.started));
                 var width = msObj.options.boardSize[0],
                     height = msObj.options.boardSize[1],
                     x,
@@ -342,7 +347,7 @@ jQuery(function ($) {
             function update() {
                 var d = new Date();
                 var t_millis = d.getTime();
-                timerElement.text(parseInt((t_millis-msObj.started*1000)/1000));
+                timerElement.text(Math.round((t_millis-msObj.started*1000)/1000));
             }
             update();
             msObj.timer = window.setInterval(function () {
@@ -357,7 +362,6 @@ jQuery(function ($) {
         };
 
         this.resetDisplays = function () {
-            console.log(msObj.options.numMines);
             $('#mine_flag_display').text(msObj.options.numMines);
             $('#timer').text(0);
         };
@@ -366,19 +370,6 @@ jQuery(function ($) {
             msObj.board.find('li.cell').each(function (ind, cell) {
                 msObj.drawCell($(cell));
             });
-
-            if (msObj.worker) {
-                msObj.callWorker('calc_win',msObj.options.numMines);
-            } else {
-                if (!window.touchAdjacent) {
-                    throw ('Could not load ' + msObj.options.pathToCellToucher);
-                }
-
-                var win = window.minesweeperCalculateWin(msObj.grid);
-                if (win) {
-                    msObj.winGame();
-                }
-            }
         };
 
         this.drawCell = function (x, y) {
@@ -424,6 +415,7 @@ jQuery(function ($) {
         this.getTemplate = function (template) {
             var templates = {
                 'status':
+                    '<h2 id="emoji"></h2>'+
                     '<div class="game_status"><label>Time: </label>' +
                     '<span id="timer" style="display: inline-block;*display: inline;\n*zoom:1;min-width: 30px;"></span>'+
                     '<div class="turn"><label>Turn: </label>' +

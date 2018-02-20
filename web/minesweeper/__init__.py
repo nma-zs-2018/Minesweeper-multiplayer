@@ -1,5 +1,5 @@
-import random
 import json
+import random
 from datetime import datetime
 
 
@@ -13,7 +13,9 @@ class Minesweeper:
         self.m = m
         self.minesCount = mines
         self.fail = False
-        if mines * 1.2 >= n * m:
+        self.won = False
+        self.unknown = n * m
+        if mines * 1.2 >= n * m or mines < 3:
             raise MinesweeperBoardException()
 
         self.mines = []
@@ -34,10 +36,14 @@ class Minesweeper:
             self.mines[x[0]][x[1]] = True
 
         self.open(cells[mines][0], cells[mines][1])
+        if self.won:
+            this = Minesweeper(n, m, mines)
 
     def open(self, i, j):
-        if self.fail:
+        if self.fail or self.won or self.board[i][j] != 100:
             return
+
+        self.unknown -= 1
 
         if self.mines[i][j]:
             self.fail = True
@@ -52,7 +58,7 @@ class Minesweeper:
             self.board[i][j] = 0
 
             def check(x, y):
-                if x >= 0 and y >= 0 and x < self.n and y < self.m and self.mines[x][y]:
+                if 0 <= x < self.n and 0 <= y < self.m and self.mines[x][y]:
                     self.board[i][j] += 1
 
             check(i, j + 1)
@@ -66,7 +72,7 @@ class Minesweeper:
 
             if self.board[i][j] == 0:
                 def run(x, y):
-                    if x >= 0 and y >= 0 and x < self.n and y < self.m and self.board[x][y] == 100:
+                    if 0 <= x < self.n and 0 <= y < self.m and self.board[x][y] == 100:
                         self.open(x, y)
 
                 run(i, j + 1)
@@ -78,8 +84,12 @@ class Minesweeper:
                 run(i + 1, j)
                 run(i - 1, j)
 
+            if self.unknown == self.minesCount:
+                self.won = True
+
     def dictionary(self):
-        return {'n': self.n, 'm': self.m, 'fail': 1 if self.fail else 0, 'mines': self.minesCount,
+        return {'n': self.n, 'm': self.m, 'fail': 1 if self.fail else 0, 'won': 1 if self.won else 0,
+                'mines': self.minesCount,
                 'board': self.board}
 
 
@@ -96,10 +106,10 @@ class MinesweeperRoom:
         self.ended = 0
 
     def open(self, i, j):
-        if self.game.fail:
+        if self.game.fail or self.game.won:
             return
         self.game.open(i, j)
-        if self.game.fail:
+        if self.game.fail or self.game.won:
             self.ended = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
 
     def broadcast(self, message):
@@ -119,7 +129,6 @@ class MinesweeperRoom:
                            'ended': self.ended})
 
     def add_player(self, player):
-        print(self.json())
         self.connections.add(player)
         player.send({
             "type": "websocket.send",

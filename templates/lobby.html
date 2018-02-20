@@ -61,6 +61,7 @@ Your name: <input id="name" type="text" value="{{ your_name }}">
     socket.onmessage = function (e) {
         if (e.data === 'REDIRECT') {
             window.location.replace('/game/{{ game_name }}');
+            return;
         }
         players = JSON.parse(e.data);
         var list = "";

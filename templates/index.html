@@ -5,11 +5,14 @@
     <title>MineSweeper</title>
 </head>
 <body>
+    <a href="/logout/">Naujas prisijungimas</a>
     <form action="game/" method="post">
-        <label for="name">Room name: </label><input id="name" type="text" name="name" value="{{ game_name }}"><br>
-        <label for="height">Height: </label><input id="height" type="number" name="height" value="10"><br>
-        <label for="width">Width: </label><input id="width" type="number" name="width" value="10"><br>
-        <label for="mines">Mines: </label><input id="mines" type="number" name="mines" value="20"><br>
+        <table>
+            <tr><td>Room name: </td><td><input id="name" type="text" name="name" value="{{ game_name }}"></td></tr>
+            <tr><td>Height: </td><td><input id="height" type="number" name="height" value="10"></td></tr>
+            <tr><td>Width: </td><td><input id="width" type="number" name="width" value="10"></td></tr>
+            <tr><td>Mines: </td><td><input id="mines" type="number" name="mines" value="20"></td></tr>
+        </table>
         {% csrf_token %}
         <input type="submit" value="OK">
     </form>
