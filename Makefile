@@ -1,6 +1,6 @@
 .PHONY: all
-all: pull build collectstatic run
-local: build collectstatic run
+all: pull build collectstatic migrate run
+local: build collectstatic migrate run
 
 # Pulls git
 pull:
@@ -14,6 +14,12 @@ build:
 # Collects the static files into STATIC_ROOT https://docs.djangoproject.com/en/2.0/ref/contrib/staticfiles/
 collectstatic:
 	docker-compose run --rm web python manage.py collectstatic --noinput
+
+makemigrations:
+	docker-compose run --rm web python manage.py makemigrations
+
+migrate:
+	docker-compose run --rm web python manage.py migrate
 
 # Run everything in the background with -d
 run:

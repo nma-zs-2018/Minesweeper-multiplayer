@@ -26,7 +26,9 @@ def clean_minesweeper_rooms():
 
 timer = None
 
+
 def create_session_key(request):
+    print(request.session.session_key)
     if request.session.session_key is None:
         request.session.save()
 
