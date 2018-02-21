@@ -1,6 +1,6 @@
 .PHONY: all
-all: pull build collectstatic migrate run
-local: build collectstatic migrate run
+all: pull build collectstatic run
+local: build collectstatic run
 
 # Pulls git
 pull:
