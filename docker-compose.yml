@@ -8,17 +8,15 @@ services:
       - "80:80"
     volumes:
       - ./nginx:/etc/nginx/conf.d
-      - code-volume:/code/
+      - ./static:/code/static
+      - ./media:/code/media
     depends_on:
       - web
   web:
     build: .
     volumes:
-      - code-volume:/code/
+      - ./static:/code/static
     ports:
       - "8000:8000"
     expose:
       - "10000-65000"
-
-volumes:
-  code-volume:
