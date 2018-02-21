@@ -15,18 +15,17 @@ Including another URLconf
 """
 from django.urls import path
 
+from djangoc import settings
 from web.views import game, index, game_create, lobby, logout, clone
 
 from django.conf.urls.static import static
-from django.conf import settings
 
 urlpatterns = [
-                  path('game/<str:game_name>', game, name='game'),
-                  path('game/', game_create, name='game_create'),
-                  path('lobby/<str:game_name>', lobby, name='lobby'),
-                  path('clone/<str:game_name>', clone, name='clone'),
-                  path('logout/', logout, name='logout'),
-                  path('', index, name='index'),
-]\
-              + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)\
-              + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    path('game/<str:game_name>', game, name='game'),
+    path('game/', game_create, name='game_create'),
+    path('lobby/<str:game_name>', lobby, name='lobby'),
+    path('clone/<str:game_name>', clone, name='clone'),
+    path('logout/', logout, name='logout'),
+    path('', index, name='index'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
+  + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

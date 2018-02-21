@@ -9,7 +9,7 @@ application = ProtocolTypeRouter({
     "websocket": AuthMiddlewareStack(
         URLRouter([
             url("^game/websocket/(.*)/$", GameConsumer),
-            url(r"^lobby/websocket/(.*)/$", LobbyConsumer),
+            url("^lobby/websocket/(.*)/$", LobbyConsumer),
         ])
     )
 })

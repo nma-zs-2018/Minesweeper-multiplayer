@@ -3,7 +3,7 @@ from datetime import datetime
 from channels.consumer import SyncConsumer
 import json
 
-from web.minesweeper import Minesweeper, MinesweeperRoom
+from minesweeper import MinesweeperRoom
 
 WEBSOCKET_DISCONNECT = {"type": "websocket.disconnect", }
 WEBSOCKET_ACCEPT = {"type": "websocket.accept", }

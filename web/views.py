@@ -6,7 +6,7 @@ from django.http import HttpResponseBadRequest
 from django.shortcuts import render, redirect
 
 # Create your views here.
-from web.minesweeper import MinesweeperRoom
+from minesweeper import MinesweeperRoom
 
 from threading import Timer
 

@@ -39,7 +39,7 @@ Your name: <input id="name" type="text" value="{{ your_name }}">
     $('#start').on("click", function (ev) {
         socket.send('START');
     });
-    var socket = new WebSocket("ws://" + window.location.host + "/lobby/websocket/{{ game_name }}/");
+    var socket = new WebSocket("ws://" + window.location.hostname + ":8000/lobby/websocket/{{ game_name }}/");
 
     socket.onopen = function (ev) {
         socket.send('{{ your_name }}');

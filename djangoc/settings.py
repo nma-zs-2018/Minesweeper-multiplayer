@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 """
 
 import os
+import random
+import string
 
 import channels_redis
 
@@ -22,7 +24,16 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '#@s#qr82$$rd6*c*0(%)b-d3^jbwwval3c_uh9po%ck%%=8k#&'
+SECRET_KEY = None
+
+if SECRET_KEY is None:
+    SECRET_FILE = os.path.join(BASE_DIR, 'secret.txt')
+    try:
+        SECRET_KEY = open(SECRET_FILE).read().strip()
+    except IOError:
+        SECRET_KEY = ''.join([random.SystemRandom().choice("{}{}{}".format(string.ascii_letters, string.digits, string.punctuation)) for i in range(50)])
+        with open(SECRET_FILE, "w") as file:
+            print(SECRET_KEY, file=file)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -48,7 +59,6 @@ INSTALLED_APPS = [
 ]
 
 redis_host = os.environ.get('REDIS_HOST', 'localhost')
-
 # Channel settings
 
 CHANNEL_LAYERS = {
