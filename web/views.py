@@ -1,14 +1,14 @@
 import random
+import re
 import string
 from datetime import datetime
+from threading import Timer
 
 from django.http import HttpResponseBadRequest
 from django.shortcuts import render, redirect
 
 # Create your views here.
-from minesweeper import MinesweeperRoom
-
-from threading import Timer
+from minesweeper import MinesweeperRoom, MinesweeperBoardException
 
 
 class RepeatTimer(Timer):
@@ -19,7 +19,8 @@ class RepeatTimer(Timer):
 
 def clean_minesweeper_rooms():
     now = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
-    remove = [k for k in MinesweeperRoom.all if MinesweeperRoom.all[k].ended > 10 and now - MinesweeperRoom.all[k].ended > 60*60*24]
+    remove = [k for k in MinesweeperRoom.all if
+              MinesweeperRoom.all[k].ended > 10 and now - MinesweeperRoom.all[k].ended > 60 * 60 * 24]
     for k in remove: del MinesweeperRoom.all[k]
 
 
@@ -38,7 +39,7 @@ def game(request, game_name):
     global timer
 
     if timer is None:
-        timer = RepeatTimer(60*60*24, clean_minesweeper_rooms)
+        timer = RepeatTimer(60 * 60 * 24, clean_minesweeper_rooms)
         timer.start()
 
     if game_name not in MinesweeperRoom.all:
@@ -65,11 +66,15 @@ def game_create(request):
     name = request.POST['name']
     mines = int(request.POST['mines'])
 
+    if not re.match('^[a-z0-9]+$', name) or 5 > len(name) or len(name) > 20:
+        return HttpResponseBadRequest()
+
     if name in MinesweeperRoom.all:
         name += random_string_letters_digits(10)
-
-    MinesweeperRoom.all[name] = MinesweeperRoom(height, width, mines)
-
+    try:
+        MinesweeperRoom.all[name] = MinesweeperRoom(height, width, mines)
+    except MinesweeperBoardException:
+        return HttpResponseBadRequest()
     return redirect('/lobby/' + name)
 
 

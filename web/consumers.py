@@ -1,7 +1,10 @@
+import re
 from datetime import datetime
 
 from channels.consumer import SyncConsumer
 import json
+
+from django.utils.html import escape
 
 from minesweeper import MinesweeperRoom
 
@@ -35,8 +38,9 @@ class LobbyConsumer(SyncConsumer):
             self.game.players_list = list(self.game.names.keys())
             self.game.broadcast('REDIRECT')
         else:
-            self.game.names[self.user] = event['text']
-            self.game.broadcast_players()
+            if re.match('^[a-zA-Z0-9- ąčęėįšųūž]+$', event['text']):
+                self.game.names[self.user] = event['text']
+                self.game.broadcast_players()
 
     def websocket_disconnect(self, event):
         if self.game is None:

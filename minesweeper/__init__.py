@@ -15,7 +15,7 @@ class Minesweeper:
         self.fail = None
         self.won = False
         self.unknown = n * m
-        if mines * 1.2 >= n * m or mines < 3:
+        if mines < 3 or not mines / (n * m) <= 0.5 or not 5 <= n <= 20 or not 5 <= m <= 40:
             raise MinesweeperBoardException()
 
         self.mines = []
@@ -126,7 +126,7 @@ class MinesweeperRoom:
             return
         name = self.names[self.players_list[self.turn]]
         if mine:
-            self.game.open_mine(i,j)
+            self.game.open_mine(i, j)
         else:
             self.game.open(i, j)
         if self.game.fail:

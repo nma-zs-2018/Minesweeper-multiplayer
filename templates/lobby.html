@@ -8,9 +8,10 @@
 Room: <a id="link" href=""></a>
 <button type="button" id="copy_button">Copy</button>
 <br>
-Your name: <input id="name" type="text" value="{{ your_name }}">
+
+<form id="name_form" action="#" onsubmit="return onSubmit()">Your name: <input id="name" type="text" value="{{ your_name }}" required="required" pattern="^[a-zA-Z0-9- ąčęėįšųūž]+$">
 <ul id="players"></ul>
-<button type="button" id="start">Start a game!</button>
+<input type="submit" id="start" value="Start a game!"></form>
 <script src="/static/lib/jquery.min.js"></script>
 <script>
     function getLink() {
@@ -36,9 +37,10 @@ Your name: <input id="name" type="text" value="{{ your_name }}">
         copyToClipboard(getLink());
         return false;
     });
-    $('#start').on("click", function (ev) {
+    function onSubmit(){
         socket.send('START');
-    });
+        return false;
+    }
     var socket = new WebSocket("ws://" + window.location.hostname + ":8000/lobby/websocket/{{ game_name }}/");
 
     socket.onopen = function (ev) {
