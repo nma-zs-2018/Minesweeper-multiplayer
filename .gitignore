@@ -5,5 +5,5 @@ a.sublime-workspace
 __pycache__
 *.pyc
 /media
-/db.sqlite3
+/database
 /secret.txt
