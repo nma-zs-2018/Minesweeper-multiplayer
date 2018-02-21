@@ -26,6 +26,10 @@ def clean_minesweeper_rooms():
 
 timer = None
 
+def create_session_key(request):
+    if request.session.session_key is None:
+        request.session.save()
+
 
 def random_string_up_letters(n):
     return ''.join(random.choice(string.ascii_uppercase) for _ in range(n))
@@ -36,6 +40,8 @@ def random_string_letters_digits(n):
 
 
 def game(request, game_name):
+    create_session_key(request)
+
     global timer
 
     if timer is None:
@@ -58,6 +64,8 @@ def game(request, game_name):
 
 
 def game_create(request):
+    create_session_key(request)
+
     if not request.POST:
         return HttpResponseBadRequest()
 
@@ -79,6 +87,8 @@ def game_create(request):
 
 
 def lobby(request, game_name):
+    create_session_key(request)
+
     if game_name not in MinesweeperRoom.all:
         return HttpResponseBadRequest()
 
@@ -91,14 +101,15 @@ def lobby(request, game_name):
 
 
 def index(request):
-    if not request.session.session_key:
-        request.session.save()
+    create_session_key(request)
 
     game_name = random_string_letters_digits(10)
     return render(request, "index.html", {'game_name': game_name})
 
 
 def clone(request, game_name):
+    create_session_key(request)
+
     if game_name not in MinesweeperRoom.all:
         return HttpResponseBadRequest()
 
@@ -114,5 +125,7 @@ def clone(request, game_name):
 
 
 def logout(request):
+    create_session_key(request)
+
     request.session.flush()
     return redirect('/')
