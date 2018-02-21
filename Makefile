@@ -13,7 +13,7 @@ build:
 
 # Collects the static files into STATIC_ROOT https://docs.djangoproject.com/en/2.0/ref/contrib/staticfiles/
 collectstatic:
-	docker-compose run --rm web python manage.py collectstatic --noinput
+	docker-compose run --rm web python manage.py collectstatic --noinput --clear
 
 # Run everything in the background with -d
 run:
