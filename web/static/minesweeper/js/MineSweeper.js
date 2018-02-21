@@ -146,7 +146,6 @@ jQuery(function ($) {
             if(!msObj.timer){
                 msObj.startTimer();
             }
-
             msObj.resetDisplays(game);
             msObj.createBoard(game.board);
             msObj.redrawBoard();
@@ -161,11 +160,7 @@ jQuery(function ($) {
                         var obj = msObj.grid[y][x],
                             cell = msObj.getJqueryObject(x,y);
                         if (obj.state === STATE_EXPLODE || obj.state === STATE_EXPLODE_TRIGGERED) {
-                            cell.removeClass('ui-icon-help')
-                                .addClass('ui-icon ui-icon-close blown');
-                            if(obj.state !== STATE_EXPLODE_TRIGGERED){
-                                cell.removeClass('explode');
-                            }
+                            cell.addClass('blown');
                         } else {
                             cell.addClass('unblown');
                         }
@@ -175,6 +170,9 @@ jQuery(function ($) {
         };
 
         this.initHandlers = function (msUI) {
+            msUI.on('contextmenu', '.cell', function (ev) {
+                ev.preventDefault();
+            });
             msUI.on('mousedown', function (ev) {
                 if (ev.which === RIGHT_MOUSE_BUTTON) {
                     clearTimeout(msObj.RIGHT_BUTTON_TIMEOUT);
@@ -221,7 +219,17 @@ jQuery(function ($) {
             msUI.on('mouseup','.cell', function (ev) {
                 var targ = $(ev.target);
                 if (ev.which === LEFT_MOUSE_BUTTON) {
-                    msObj.handleLeftClick(targ);
+                    if (ev.shiftKey || ev.ctrlKey) {
+                        msObj.MODIFIER_KEY_DOWN = true;
+                        setTimeout(function () {
+                            msObj.MODIFIER_KEY_DOWN = false;
+                        }, 50);
+                        msObj.handleRightClick(targ);
+                    } else {
+                        msObj.handleLeftClick(targ);
+                    }
+                } else if (ev.which === RIGHT_MOUSE_BUTTON) {
+                    msObj.handleRightClick(targ);
                 }
             });
         };
@@ -229,7 +237,13 @@ jQuery(function ($) {
         this.handleLeftClick = function (cell) {
             var obj = msObj.getCellObj(cell);
 
-            msObj.socket.send("{\"x\": "+obj.x+", \"y\": "+obj.y+"}");
+            msObj.socket.send("{\"x\": "+obj.x+", \"y\": "+obj.y+",\"mine\":0}");
+        };
+
+        this.handleRightClick = function (cell) {
+            var obj = msObj.getCellObj(cell);
+
+            msObj.socket.send("{\"x\": "+obj.x+", \"y\": "+obj.y+",\"mine\":1}");
         };
 
         this.handleWorkerMessage = function (data) {
@@ -336,11 +350,12 @@ jQuery(function ($) {
             switch (gridobj.state) {
                 case STATE_UNKNOWN:
                 case STATE_OPEN:
-                case STATE_EXPLODE:
                     cell.addClass(gridobj.state);
                     break;
                 case STATE_EXPLODE_TRIGGERED:
                     cell.addClass(STATE_EXPLODE);
+                case STATE_EXPLODE:
+                    cell.addClass('ui-icon ui-icon-close');
                     break;
                 case STATE_NUMBER:
                     cell.addClass('number');

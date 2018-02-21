@@ -39,20 +39,21 @@ class Minesweeper:
         if self.won:
             this = Minesweeper(n, m, mines)
 
-    def open(self, i, j, name = ''):
+    def show_mines(self):
+        for ii in range(0, self.n):
+            for jj in range(0, self.m):
+                if self.mines[ii][jj]:
+                    self.board[ii][jj] = 99
+
+    def open(self, i, j):
         if self.fail is not None or self.won or self.board[i][j] != 100:
             return
 
         self.unknown -= 1
 
         if self.mines[i][j]:
-            self.fail = name
-
-            for ii in range(0, self.n):
-                for jj in range(0, self.m):
-                    if self.mines[ii][jj]:
-                        self.board[ii][jj] = 99
-
+            self.fail = True
+            self.show_mines()
             self.board[i][j] = 98
         else:
             self.board[i][j] = 0
@@ -84,8 +85,22 @@ class Minesweeper:
                 run(i + 1, j)
                 run(i - 1, j)
 
-            if self.unknown == self.minesCount:
+            if self.unknown == 0:
                 self.won = True
+
+    def open_mine(self, i, j):
+        if self.fail is not None or self.won or self.board[i][j] != 100:
+            return
+
+        self.unknown -= 1
+
+        if self.mines[i][j]:
+            self.board[i][j] = 99
+            if self.unknown == 0:
+                self.won = True
+        else:
+            self.fail = True
+            self.show_mines()
 
     def dictionary(self):
         return {'n': self.n, 'm': self.m,
@@ -106,11 +121,16 @@ class MinesweeperRoom:
         self.started = None
         self.ended = 0
 
-    def open(self, i, j):
+    def open(self, i, j, mine):
         if self.game.fail or self.game.won:
             return
         name = self.names[self.players_list[self.turn]]
-        self.game.open(i, j, name)
+        if mine:
+            self.game.open_mine(i,j)
+        else:
+            self.game.open(i, j)
+        if self.game.fail:
+            self.game.fail = name
         if self.game.fail or self.game.won:
             self.ended = (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()
 
